@@ -1,0 +1,39 @@
+from typing import Dict, List
+
+# Minimal MITRE mapping (you can expand later)
+MITRE_MAP: Dict[str, List[dict]] = {
+    "failed_login": [
+        {"tactic": "Credential Access", "id": "T1110", "technique": "Brute Force"}
+    ],
+    "s3_public": [
+        {"tactic": "Exfiltration", "id": "T1567", "technique": "Exfiltration Over Web Service"}
+    ],
+}
+
+def _norm(t: str) -> str:
+    t = (t or "").strip().lower()
+    t = t.replace("-", "_").replace(" ", "_")
+    # helpful aliases
+    if t in {"multiple_failed_logins", "failed_logins", "bruteforce", "brute_force"}:
+        return "failed_login"
+    if t in {"s3_public_bucket", "s3_public", "s3_public_access", "public_s3", "s3public"}:
+        return "s3_public"
+    return t
+
+def map_incident_to_mitre(alert_types: List[str]) -> List[dict]:
+    """
+    Deduplicate MITRE techniques across alert types.
+    """
+    out: List[dict] = []
+    seen = set()
+
+    for t in (alert_types or []):
+        key = _norm(t)
+        for item in MITRE_MAP.get(key, []):
+            sig = (item.get("id"), item.get("technique"))
+            if sig in seen:
+                continue
+            seen.add(sig)
+            out.append(item)
+
+    return out
