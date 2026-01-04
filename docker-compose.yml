@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  api:
+    container_name: soc_copilot_api
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      # Postgres connection (used by backend/app/db.py)
+      DATABASE_URL: postgresql+psycopg2://soc_user:soc_pass@db:5432/soc_db
+      # optional: makes logs show immediately
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # hot-reload style dev: edit code locally, container sees changes
+      - ./backend:/app
+      - ./sample_data:/sample_data
+    command: >
+      sh -c "
+      uvicorn app.main:app --host 0.0.0.0 --port 8000
+      "
+
+  db:
+    container_name: soc_copilot_db
+    image: postgres:16
+    environment:
+      POSTGRES_DB: soc_db
+      POSTGRES_USER: soc_user
+      POSTGRES_PASSWORD: soc_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - soc_copilot_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soc_user -d soc_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  ui:
+    container_name: soc_copilot_ui
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    environment:
+      # Streamlit will call the backend inside the docker network
+      BACKEND_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    volumes:
+      - ./ui:/app
+    command: >
+      sh -c "
+      streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+      "
+
+volumes:
+  soc_copilot_pgdata:
