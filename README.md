@@ -221,18 +221,6 @@ Separation of automation and decision making
 
 Demo-friendly, extensible architecture
 
-Future Enhancements
-
-Authentication and multi-user support
-
-Database-backed audit logs
-
-Live alert streaming with automatic correlation
-
-SOAR and remediation integrations
-
-Advanced metrics and dashboards
-
 License
 
 This project is provided for educational and demonstration purposes.
